@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -57,7 +57,7 @@ export default function Home() {
                 </span>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            {/* <div className="grid grid-cols-2 gap-4">
               <Button variant="outline" className="w-full">
                 <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                   <path
@@ -89,6 +89,14 @@ export default function Home() {
                 </svg>
                 Email
               </Button>
+            </div> */}
+            <div className="grid grid-cols-2 gap-4">
+              <Link href="/careworker/dashboard">
+                <Button>Sample Careworker</Button>
+              </Link>
+              <Link href="/manager/dashboard">
+                <Button>Sample Manager</Button>
+              </Link>
             </div>
           </CardFooter>
         </Card>
