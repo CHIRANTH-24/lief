@@ -1,17 +1,15 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-// import { useToast } from "@/hooks/use-toast"
 import { MapPin, Clock, CheckCircle, XCircle } from "lucide-react"
 
-export default function ClockPage() {
-    const searchParams = useSearchParams()
+function ClockComponent() {
+    const searchParams = useSearchParams() // ✅ Now inside a separate client component
     const router = useRouter()
-    // const { toast } = useToast()
 
     const action = searchParams.get("action") || "in"
     const isClockIn = action === "in"
@@ -43,31 +41,19 @@ export default function ClockPage() {
                     setIsWithinPerimeter(within)
                 },
                 () => {
-                    // toast({
-                    //     variant: "destructive",
-                    //     title: "Location access denied",
-                    //     description: "Please enable location services to use this app",
-                    // })
+                    console.error("Location access denied")
                 },
             )
         }
-        // }, [toast])
-
     }, [])
 
     const handleSubmit = () => {
         setIsSubmitting(true)
 
-        // Simulate API call
         setTimeout(() => {
             if (isClockIn) {
-                // Clock in logic
                 if (!isWithinPerimeter) {
-                    toast({
-                        variant: "destructive",
-                        title: "Cannot clock in",
-                        description: "You must be within the designated perimeter to clock in",
-                    })
+                    console.error("Cannot clock in: outside perimeter")
                     setIsSubmitting(false)
                     return
                 }
@@ -76,20 +62,10 @@ export default function ClockPage() {
                 localStorage.setItem("clockInTime", now)
                 localStorage.setItem("clockInNotes", notes)
                 localStorage.setItem("clockInLocation", JSON.stringify(location))
-
-                // toast({
-                //     title: "Clocked in successfully",
-                //     description: `You clocked in at ${new Date().toLocaleTimeString()}`,
-                // })
             } else {
-                // Clock out logic
                 const clockInTime = localStorage.getItem("clockInTime")
                 if (!clockInTime) {
-                    // toast({
-                    //     variant: "destructive",
-                    //     title: "Cannot clock out",
-                    //     description: "You are not currently clocked in",
-                    // })
+                    console.error("Cannot clock out: Not clocked in")
                     setIsSubmitting(false)
                     return
                 }
@@ -100,7 +76,6 @@ export default function ClockPage() {
                 const durationHours = Math.floor(durationMs / (1000 * 60 * 60))
                 const durationMinutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60))
 
-                // Save shift to history (in a real app, this would be sent to a server)
                 const clockInNotes = localStorage.getItem("clockInNotes") || ""
                 const clockInLocation = localStorage.getItem("clockInLocation") || "{}"
 
@@ -114,20 +89,13 @@ export default function ClockPage() {
                     duration: `${durationHours}h ${durationMinutes}m`,
                 }
 
-                // In a real app, we would save this to a database
                 const shifts = JSON.parse(localStorage.getItem("shifts") || "[]")
                 shifts.unshift(shift)
                 localStorage.setItem("shifts", JSON.stringify(shifts))
 
-                // Clear clock in data
                 localStorage.removeItem("clockInTime")
                 localStorage.removeItem("clockInNotes")
                 localStorage.removeItem("clockInLocation")
-
-                // toast({
-                //     title: "Clocked out successfully",
-                //     description: `Your shift duration: ${durationHours}h ${durationMinutes}m`,
-                // })
             }
 
             setIsSubmitting(false)
@@ -209,3 +177,10 @@ export default function ClockPage() {
     )
 }
 
+export default function ClockPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <ClockComponent />
+        </Suspense>
+    )
+}
