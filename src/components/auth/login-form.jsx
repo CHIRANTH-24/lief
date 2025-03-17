@@ -8,7 +8,7 @@ import * as z from "zod"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { toast } from "sonner"
+// import { toast } from "sonner"
 
 const formSchema = z.object({
     email: z.string().email({ message: "Please enter a valid email address" }),
@@ -42,16 +42,16 @@ export function LoginForm() {
                 router.push("/careworker/dashboard")
             }
 
-            toast({
-                title: "Login successful",
-                description: "Welcome back to Lief Healthcare",
-            })
+            // toast({
+            //     title: "Login successful",
+            //     description: "Welcome back to Lief Healthcare",
+            // })
         } catch (error) {
-            toast({
-                variant: "destructive",
-                title: "Login failed",
-                description: "Please check your credentials and try again",
-            })
+            // toast({
+            //     variant: "destructive",
+            //     title: "Login failed",
+            //     description: "Please check your credentials and try again",
+            // })
         } finally {
             setIsLoading(false)
         }

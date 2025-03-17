@@ -6,7 +6,7 @@ import { BarChart, Users, Settings, LogOut, Menu, MapPin, Clock, Home } from "lu
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 
-import {toast} from "sonner"
+// import {toast} from "sonner"
 import { useRouter } from "next/navigation"
 import { useAuth } from "../auth/auth-provider"
 
@@ -20,10 +20,10 @@ export function ManagerLayout({ children }) {
     const handleLogout = () => {
         logout()
         router.push("/")
-        toast({
-            title: "Logged out",
-            description: "You have been logged out successfully",
-        })
+        // toast({
+        //     title: "Logged out",
+        //     description: "You have been logged out successfully",
+        // })
     }
 
     const routes = [

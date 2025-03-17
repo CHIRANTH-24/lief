@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { toast } from "sonner"
+// import { toast } from "sonner"
 
 
 const formSchema = z.object({
@@ -43,20 +43,20 @@ export function RegisterForm() {
             // Simulate registration
             await new Promise((resolve) => setTimeout(resolve, 1000))
 
-            toast({
-                title: "Registration successful",
-                description: "Your account has been created",
-            })
+            // toast({
+            //     title: "Registration successful",
+            //     description: "Your account has been created",
+            // })
 
             // Redirect to login
             form.reset()
             router.push("/")
         } catch (error) {
-            toast({
-                variant: "destructive",
-                title: "Registration failed",
-                description: "There was a problem creating your account",
-            })
+            // toast({
+            //     variant: "destructive",
+            //     title: "Registration failed",
+            //     description: "There was a problem creating your account",
+            // })
         } finally {
             setIsLoading(false)
         }
