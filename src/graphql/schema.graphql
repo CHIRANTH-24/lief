@@ -1,0 +1,178 @@
+type User {
+  id: ID!
+  email: String!
+  firstName: String!
+  lastName: String!
+  role: UserRole!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  shifts: [Shift!]!
+  clockIns: [ClockIn!]!
+  clockOuts: [ClockOut!]!
+  managedStaff: [User!]!
+  manager: User
+}
+
+type Shift {
+  id: ID!
+  startTime: DateTime!
+  endTime: DateTime!
+  status: ShiftStatus!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  userId: String!
+  user: User!
+  clockIns: [ClockIn!]!
+  clockOuts: [ClockOut!]!
+}
+
+type ClockIn {
+  id: ID!
+  timestamp: DateTime!
+  location: Location
+  userId: String!
+  user: User!
+  shiftId: String!
+  shift: Shift!
+}
+
+type ClockOut {
+  id: ID!
+  timestamp: DateTime!
+  location: Location
+  userId: String!
+  user: User!
+  shiftId: String!
+  shift: Shift!
+}
+
+type Location {
+  id: ID!
+  latitude: Float!
+  longitude: Float!
+  address: String
+  clockIns: [ClockIn!]!
+  clockOuts: [ClockOut!]!
+}
+
+enum UserRole {
+  MANAGER
+  CAREWORKER
+}
+
+enum ShiftStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+scalar DateTime
+
+type Query {
+  me: User
+  user(id: ID!): User
+  users: [User!]!
+  shift(id: ID!): Shift
+  shifts: [Shift!]!
+  clockIn(id: ID!): ClockIn
+  clockIns: [ClockIn!]!
+  clockOut(id: ID!): ClockOut
+  clockOuts: [ClockOut!]!
+  location(id: ID!): Location
+  locations: [Location!]!
+}
+
+type Mutation {
+  register(input: RegisterInput!): AuthPayload!
+  login(input: LoginInput!): AuthPayload!
+  createUser(input: CreateUserInput!): User!
+  updateUser(id: ID!, input: UpdateUserInput!): User!
+  deleteUser(id: ID!): Boolean!
+  createShift(input: CreateShiftInput!): Shift!
+  updateShift(id: ID!, input: UpdateShiftInput!): Shift!
+  deleteShift(id: ID!): Boolean!
+  clockIn(input: ClockInInput!): ClockIn!
+  clockOut(input: ClockOutInput!): ClockOut!
+  createLocation(input: CreateLocationInput!): Location!
+  updateLocation(id: ID!, input: UpdateLocationInput!): Location!
+  deleteLocation(id: ID!): Boolean!
+}
+
+type AuthPayload {
+  token: String!
+  user: User!
+}
+
+input RegisterInput {
+  email: String!
+  password: String!
+  firstName: String!
+  lastName: String!
+  role: UserRole!
+}
+
+input LoginInput {
+  email: String!
+  password: String!
+}
+
+input CreateUserInput {
+  email: String!
+  password: String!
+  firstName: String!
+  lastName: String!
+  role: UserRole!
+  managerId: ID
+}
+
+input UpdateUserInput {
+  email: String
+  firstName: String
+  lastName: String
+  role: UserRole
+  managerId: ID
+}
+
+input CreateShiftInput {
+  startTime: DateTime!
+  endTime: DateTime!
+  userId: String!
+  status: ShiftStatus
+}
+
+input UpdateShiftInput {
+  startTime: DateTime
+  endTime: DateTime
+  status: ShiftStatus
+}
+
+input ClockInInput {
+  userId: String!
+  shiftId: String!
+  location: LocationInput
+}
+
+input ClockOutInput {
+  userId: String!
+  shiftId: String!
+  location: LocationInput
+}
+
+input LocationInput {
+  latitude: Float!
+  longitude: Float!
+  address: String
+}
+
+input CreateLocationInput {
+  latitude: Float!
+  longitude: Float!
+  address: String
+}
+
+input UpdateLocationInput {
+  latitude: Float
+  longitude: Float
+  address: String
+}

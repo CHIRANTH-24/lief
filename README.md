@@ -1,32 +1,133 @@
-# 🌍 GeoShift - Healthcare Shift Clock-in App
+# Lief - Healthcare Clock System
 
-GeoShift is a **web application** that enables **healthcare workers** to **clock in and out** of their shifts based on **geolocation tracking**. It provides **real-time shift monitoring**, **geofencing enforcement**, and an **admin dashboard** for managers.
+A modern healthcare workforce management system built with Next.js, GraphQL, and Prisma.
 
-## ER Diagram
+## Features
 
-![ER Diagram](diagram-export-3-14-2025-1_19_25-PM.png)
+- User authentication and authorization
+- Role-based access control (Manager and Careworker roles)
+- Shift management
+- Clock in/out functionality with location tracking
+- Real-time updates
+- Modern UI with Tailwind CSS
 
-## Sequence Diagram
+## Prerequisites
 
-![Sequence Diagram](image.png)
+- Node.js 18 or later
+- PostgreSQL database
+- npm or yarn package manager
 
-## Flow Chart
+## Setup
 
-![alt text](image-1.png)
+1. Clone the repository:
 
-## 🚀 Features
+```bash
+git clone <repository-url>
+cd lief
+```
 
-### **🔹 Care Workers**
+2. Install dependencies:
 
-✅ **Clock-in** only when inside the hospital's geofenced area.  
-✅ **Clock-out** at the end of the shift.  
-✅ **Add shift notes** while clocking in/out.  
-✅ **View shift history** with timestamps & locations.
+```bash
+npm install
+```
 
-### **🔹 Managers**
+3. Set up environment variables:
 
-✅ **Set geofence perimeters** (e.g., 2km around a hospital).  
-✅ **Monitor live shifts** (who is clocked in & their location).  
-✅ **View analytics** (total hours worked, shifts per day).
+- Copy `.env.example` to `.env`
+- Update the following variables:
+  - `DATABASE_URL`: Your PostgreSQL database connection string
+  - `JWT_SECRET`: A secure secret key for JWT token generation
+
+4. Set up the database:
+
+```bash
+# Generate Prisma client
+npm run prisma:generate
+
+# Run database migrations
+npm run prisma:migrate
+```
+
+5. Start the development servers:
+
+In one terminal:
+
+```bash
+# Start the Next.js frontend
+npm run dev
+```
+
+In another terminal:
+
+```bash
+# Start the GraphQL backend
+npm run graphql:dev
+```
+
+The application will be available at:
+
+- Frontend: http://localhost:3000
+- GraphQL Playground: http://localhost:4000
+
+## Available Scripts
+
+- `npm run dev`: Start the Next.js development server
+- `npm run build`: Build the Next.js application
+- `npm run start`: Start the production Next.js server
+- `npm run lint`: Run ESLint
+- `npm run prisma:generate`: Generate Prisma client
+- `npm run prisma:migrate`: Run database migrations
+- `npm run prisma:studio`: Open Prisma Studio for database management
+- `npm run graphql:dev`: Start the GraphQL development server
+
+## Project Structure
+
+```
+lief/
+├── src/
+│   ├── app/                 # Next.js app directory
+│   ├── components/          # React components
+│   ├── graphql/            # GraphQL schema and resolvers
+│   │   ├── resolvers/      # GraphQL resolvers
+│   │   ├── schema.graphql  # GraphQL schema
+│   │   └── server.js       # GraphQL server setup
+│   ├── hooks/              # Custom React hooks
+│   └── lib/                # Utility functions
+├── prisma/
+│   └── schema.prisma       # Prisma schema
+├── public/                 # Static files
+└── package.json           # Project dependencies
+```
+
+## Database Schema
+
+The application uses the following main models:
+
+- `User`: Represents users (managers and careworkers)
+- `Shift`: Represents work shifts
+- `ClockIn`: Records when users clock in
+- `ClockOut`: Records when users clock out
+- `Location`: Stores location data for clock in/out events
+
+## Authentication
+
+The application uses JWT (JSON Web Tokens) for authentication. The token is included in the Authorization header for all GraphQL requests:
+
+```
+Authorization: Bearer <token>
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ---

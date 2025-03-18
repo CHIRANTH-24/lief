@@ -1,0 +1,84 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  firstName     String
+  lastName      String
+  role          UserRole  @default(CAREWORKER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  shifts        Shift[]
+  clockIns      ClockIn[]
+  clockOuts     ClockOut[]
+  managedStaff  User[]    @relation("ManagerStaff")
+  manager       User?     @relation("ManagerStaff", fields: [managerId], references: [id])
+  managerId     String?
+}
+
+model Shift {
+  id          String    @id @default(cuid())
+  startTime   DateTime
+  endTime     DateTime
+  status      ShiftStatus @default(SCHEDULED)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  clockIns    ClockIn[]
+  clockOuts   ClockOut[]
+}
+
+model ClockIn {
+  id        String   @id @default(cuid())
+  timestamp DateTime @default(now())
+  location  Location? @relation(fields: [locationId], references: [id])
+  locationId String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  shiftId   String
+  shift     Shift    @relation(fields: [shiftId], references: [id])
+}
+
+model ClockOut {
+  id        String   @id @default(cuid())
+  timestamp DateTime @default(now())
+  location  Location? @relation(fields: [locationId], references: [id])
+  locationId String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  shiftId   String
+  shift     Shift    @relation(fields: [shiftId], references: [id])
+}
+
+model Location {
+  id        String   @id @default(cuid())
+  latitude  Float
+  longitude Float
+  address   String?
+  clockIns  ClockIn[]
+  clockOuts ClockOut[]
+}
+
+enum UserRole {
+  MANAGER
+  CAREWORKER
+}
+
+enum ShiftStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+} 

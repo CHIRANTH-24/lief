@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { MapPin, Clock, CheckCircle, XCircle } from "lucide-react"
 
 function ClockComponent() {
-    const searchParams = useSearchParams() // ✅ Now inside a separate client component
+    const searchParams = useSearchParams() 
     const router = useRouter()
 
     const action = searchParams.get("action") || "in"
@@ -22,7 +22,6 @@ function ClockComponent() {
     const [clockInTime, setClockInTime] = useState(null)
 
     useEffect(() => {
-        // Check if user is already clocked in
         const storedClockInTime = localStorage.getItem("clockInTime")
         if (storedClockInTime) {
             setClockedIn(true)
