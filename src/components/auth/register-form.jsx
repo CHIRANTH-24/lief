@@ -9,8 +9,9 @@ import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { useMutation } from "@apollo/client"
+import { REGISTER_MUTATION } from "@/lib/graphql/mutations"
 // import { toast } from "sonner"
-
 
 const formSchema = z.object({
     name: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -24,9 +25,9 @@ const formSchema = z.object({
 export function RegisterForm() {
     const [isLoading, setIsLoading] = useState(false)
     const router = useRouter()
+    const [register] = useMutation(REGISTER_MUTATION)
 
-
-    const form = useForm  ({
+    const form = useForm({
         resolver: zodResolver(formSchema),
         defaultValues: {
             name: "",
@@ -40,22 +41,37 @@ export function RegisterForm() {
         setIsLoading(true)
 
         try {
-            // Simulate registration
-            await new Promise((resolve) => setTimeout(resolve, 1000))
+            const [firstName, ...lastNameParts] = values.name.split(' ')
+            const lastName = lastNameParts.join(' ')
+
+            const { data } = await register({
+                variables: {
+                    input: {
+                        email: values.email,
+                        password: values.password,
+                        firstName,
+                        lastName,
+                        role: values.role.toUpperCase(),
+                    },
+                },
+            })
+
+            const { token, user } = data.register
+            localStorage.setItem('token', token)
+            localStorage.setItem('user', JSON.stringify(user))
 
             // toast({
             //     title: "Registration successful",
             //     description: "Your account has been created",
             // })
 
-            // Redirect to login
             form.reset()
             router.push("/")
         } catch (error) {
             // toast({
             //     variant: "destructive",
             //     title: "Registration failed",
-            //     description: "There was a problem creating your account",
+            //     description: error.message || "There was a problem creating your account",
             // })
         } finally {
             setIsLoading(false)
