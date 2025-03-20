@@ -50,6 +50,7 @@ type Location {
   id: ID!
   latitude: Float!
   longitude: Float!
+  radius: Float!
   address: String
   clockIns: [ClockIn!]!
   clockOuts: [ClockOut!]!
@@ -162,17 +163,54 @@ input ClockOutInput {
 input LocationInput {
   latitude: Float!
   longitude: Float!
+  radius: Float
   address: String
 }
 
 input CreateLocationInput {
   latitude: Float!
   longitude: Float!
+  radius: Float!
   address: String
 }
 
 input UpdateLocationInput {
   latitude: Float
   longitude: Float
+  radius: Float
   address: String
+}
+
+input LocationPerimeterInput {
+  latitude: Float!
+  longitude: Float!
+  radiusKm: Float!
+}
+
+type DailyStats {
+  date: DateTime!
+  averageHours: Float!
+  clockInCount: Int!
+}
+
+type StaffHours {
+  user: User!
+  totalHours: Float!
+}
+
+type StaffClockRecord {
+  user: User!
+  clockIns: [ClockIn!]!
+  clockOuts: [ClockOut!]!
+}
+
+extend type Query {
+  getClockedInStaff: [User!]!
+  getStaffClockRecords: [StaffClockRecord!]!
+  getDailyStats(startDate: DateTime!, endDate: DateTime): DailyStats!
+  getWeeklyStaffHours: [StaffHours!]!
+}
+
+extend type Mutation {
+  setLocationPerimeter(input: LocationPerimeterInput!): Location!
 }

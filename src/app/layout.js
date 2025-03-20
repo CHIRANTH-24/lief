@@ -19,12 +19,7 @@ export default function RootLayout({ children }) {
       <body className={inter.className}>
         <ApolloWrapper>
           <AuthProvider>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="system"
-              enableSystem
-              disableTransitionOnChange
-            >
+            <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
               {children}
               <Toaster />
             </ThemeProvider>

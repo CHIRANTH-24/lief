@@ -21,6 +21,7 @@ import {
 import { Users, Clock, Calendar, MapPin } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import { toast } from "sonner"
 
 export default function ManagerDashboard() {
     const router = useRouter()
@@ -82,6 +83,24 @@ export default function ManagerDashboard() {
         { id: 4, name: "Emily Kim", position: "Caregiver", clockInTime: "09:15 AM", location: "Main Building" },
         { id: 5, name: "Michael Patel", position: "Nurse", clockInTime: "08:00 AM", location: "South Wing" },
     ])
+
+    const handleStaffError = (error) => {
+        toast.error("Staff Error", {
+            description: "Failed to fetch staff data: " + error.message
+        });
+    }
+
+    const handleShiftsError = (error) => {
+        toast.error("Shifts Error", {
+            description: "Failed to fetch shifts data: " + error.message
+        });
+    }
+
+    const handleAnalyticsError = (error) => {
+        toast.error("Analytics Error", {
+            description: "Failed to fetch analytics data: " + error.message
+        });
+    }
 
     return (
         <div className="space-y-6">
@@ -321,4 +340,3 @@ export default function ManagerDashboard() {
         </div>
     )
 }
-

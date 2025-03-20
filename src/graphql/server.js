@@ -9,6 +9,7 @@ import { userResolvers } from "./resolvers/user.js";
 import { shiftResolvers } from "./resolvers/shift.js";
 import { clockResolvers } from "./resolvers/clock.js";
 import { locationResolvers } from "./resolvers/location.js";
+import { managerResolvers } from "./resolvers/manager.js";
 
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -25,12 +26,14 @@ const resolvers = {
     ...shiftResolvers.Query,
     ...clockResolvers.Query,
     ...locationResolvers.Query,
+    ...managerResolvers.Query,
   },
   Mutation: {
     ...userResolvers.Mutation,
     ...shiftResolvers.Mutation,
     ...clockResolvers.Mutation,
     ...locationResolvers.Mutation,
+    ...managerResolvers.Mutation,
   },
 };
 
