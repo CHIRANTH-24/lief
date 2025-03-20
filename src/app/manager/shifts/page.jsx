@@ -1,8 +1,6 @@
 "use client"
 
-import { useState } from 'react';
-import { useQuery, useMutation } from '@apollo/client';
-import { GET_STAFF_SHIFTS, CREATE_SHIFT, UPDATE_SHIFT, DELETE_SHIFT } from '@/graphql/operations/manager';
+import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -19,63 +17,97 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Search, MoreHorizontal, CalendarIcon } from "lucide-react"
 import { format } from "date-fns"
-import { toast } from "sonner"
+
+
 
 export default function ShiftsPage() {
-    const { loading: shiftsLoading, error: shiftsError, data: shiftsData } = useQuery(GET_STAFF_SHIFTS, {
-        onError: (error) => {
-            toast.error("Shifts Error", {
-                description: "Failed to fetch staff shifts: " + error.message
-            });
-        }
-    });
-
-    const [createShift] = useMutation(CREATE_SHIFT, {
-        onCompleted: () => {
-            toast.success("Shift Created", {
-                description: "New shift has been successfully created."
-            });
-        },
-        onError: (error) => {
-            toast.error("Create Error", {
-                description: "Failed to create shift: " + error.message
-            });
-        },
-        refetchQueries: [{ query: GET_STAFF_SHIFTS }]
-    });
-
-    const [updateShift] = useMutation(UPDATE_SHIFT, {
-        onCompleted: () => {
-            toast.success("Shift Updated", {
-                description: "Shift has been successfully updated."
-            });
-        },
-        onError: (error) => {
-            toast.error("Update Error", {
-                description: "Failed to update shift: " + error.message
-            });
-        },
-        refetchQueries: [{ query: GET_STAFF_SHIFTS }]
-    });
-
-    const [deleteShift] = useMutation(DELETE_SHIFT, {
-        onCompleted: () => {
-            toast.success("Shift Deleted", {
-                description: "Shift has been successfully deleted."
-            });
-        },
-        onError: (error) => {
-            toast.error("Delete Error", {
-                description: "Failed to delete shift: " + error.message
-            });
-        },
-        refetchQueries: [{ query: GET_STAFF_SHIFTS }]
-    });
-
     const [searchQuery, setSearchQuery] = useState("")
     const [date, setDate] = useState()
-
-    const shifts = shiftsData?.staffShifts || []
+    const [shifts, setShifts] = useState([
+        {
+            id: 1,
+            staffName: "John Doe",
+            position: "Nurse",
+            date: "2023-03-15",
+            clockInTime: "08:30 AM",
+            clockOutTime: "05:30 PM",
+            duration: "9h 0m",
+            location: "Main Building",
+            notes: "Regular shift",
+        },
+        {
+            id: 2,
+            staffName: "Sarah Miller",
+            position: "Caregiver",
+            date: "2023-03-15",
+            clockInTime: "09:00 AM",
+            clockOutTime: "06:00 PM",
+            duration: "9h 0m",
+            location: "East Wing",
+            notes: "Covered for Jane",
+        },
+        {
+            id: 3,
+            staffName: "Robert Johnson",
+            position: "Nurse",
+            date: "2023-03-15",
+            clockInTime: "08:45 AM",
+            clockOutTime: "04:45 PM",
+            duration: "8h 0m",
+            location: "West Wing",
+        },
+        {
+            id: 4,
+            staffName: "Emily Kim",
+            position: "Caregiver",
+            date: "2023-03-14",
+            clockInTime: "09:15 AM",
+            clockOutTime: "06:15 PM",
+            duration: "9h 0m",
+            location: "Main Building",
+        },
+        {
+            id: 5,
+            staffName: "Michael Patel",
+            position: "Nurse",
+            date: "2023-03-14",
+            clockInTime: "08:00 AM",
+            clockOutTime: "05:00 PM",
+            duration: "9h 0m",
+            location: "South Wing",
+            notes: "Overtime approved",
+        },
+        {
+            id: 6,
+            staffName: "Lisa Rodriguez",
+            position: "Caregiver",
+            date: "2023-03-14",
+            clockInTime: "08:30 AM",
+            clockOutTime: "05:30 PM",
+            duration: "9h 0m",
+            location: "East Wing",
+        },
+        {
+            id: 7,
+            staffName: "David Smith",
+            position: "Nurse",
+            date: "2023-03-13",
+            clockInTime: "09:00 AM",
+            clockOutTime: "06:00 PM",
+            duration: "9h 0m",
+            location: "West Wing",
+        },
+        {
+            id: 8,
+            staffName: "Anna Thompson",
+            position: "Caregiver",
+            date: "2023-03-13",
+            clockInTime: "08:45 AM",
+            clockOutTime: "05:45 PM",
+            duration: "9h 0m",
+            location: "Main Building",
+        },
+    ])
 
     const filteredShifts = shifts.filter(
         (shift) =>

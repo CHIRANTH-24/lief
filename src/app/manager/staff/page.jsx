@@ -6,7 +6,7 @@ import { GET_CLOCKED_IN_STAFF, GET_STAFF_CLOCK_RECORDS } from '@/graphql/operati
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table"
+import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "@/components/ui/table"
 import { Search } from "lucide-react"
 import { toast } from "sonner"
 
