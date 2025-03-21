@@ -307,6 +307,177 @@ export const managerResolvers = {
 
       return shifts;
     },
+
+    // Get hourly distribution of clock-ins
+    getHourlyDistribution: async (
+      _,
+      { startDate, endDate = new Date() },
+      { user }
+    ) => {
+      ensureManager(user);
+
+      const clockEvents = await prisma.clockIn.findMany({
+        where: {
+          user: { managerId: user.id },
+          timestamp: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+      });
+
+      // Group by hour
+      const hourlyDistribution = Array.from({ length: 24 }, (_, i) => ({
+        hour: `${i.toString().padStart(2, "0")}:00`,
+        count: 0,
+      }));
+
+      clockEvents.forEach((event) => {
+        const hour = event.timestamp.getHours();
+        hourlyDistribution[hour].count++;
+      });
+
+      return hourlyDistribution;
+    },
+
+    // Get location distribution
+    getLocationDistribution: async (
+      _,
+      { startDate, endDate = new Date() },
+      { user }
+    ) => {
+      ensureManager(user);
+
+      const clockEvents = await prisma.clockIn.findMany({
+        where: {
+          user: { managerId: user.id },
+          timestamp: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+        include: {
+          location: true,
+        },
+      });
+
+      // Group by location
+      const locationCounts = {};
+      clockEvents.forEach((event) => {
+        if (event.location) {
+          const locationKey = event.location.address || "Unknown Location";
+          locationCounts[locationKey] = (locationCounts[locationKey] || 0) + 1;
+        }
+      });
+
+      return Object.entries(locationCounts).map(([address, count]) => ({
+        location: { address },
+        count,
+      }));
+    },
+
+    // Get analytics overview
+    getAnalyticsOverview: async (
+      _,
+      { startDate, endDate = new Date() },
+      { user }
+    ) => {
+      ensureManager(user);
+
+      // Calculate previous period dates
+      const periodDuration = endDate - startDate;
+      const previousStartDate = new Date(startDate.getTime() - periodDuration);
+      const previousEndDate = new Date(endDate.getTime() - periodDuration);
+
+      // Get current period data
+      const currentPeriodData = await prisma.clockIn.findMany({
+        where: {
+          user: { managerId: user.id },
+          timestamp: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+        include: {
+          clockOuts: true,
+        },
+      });
+
+      // Get previous period data
+      const previousPeriodData = await prisma.clockIn.findMany({
+        where: {
+          user: { managerId: user.id },
+          timestamp: {
+            gte: previousStartDate,
+            lte: previousEndDate,
+          },
+        },
+        include: {
+          clockOuts: true,
+        },
+      });
+
+      // Calculate current period metrics
+      const currentTotalClockIns = currentPeriodData.length;
+      const currentTotalHours = currentPeriodData.reduce((total, event) => {
+        if (event.clockOuts.length > 0) {
+          return (
+            total +
+            calculateHours(event.timestamp, event.clockOuts[0].timestamp)
+          );
+        }
+        return total;
+      }, 0);
+      const currentUniqueStaff = new Set(
+        currentPeriodData.map((event) => event.userId)
+      ).size;
+      const currentAvgDuration =
+        currentTotalClockIns > 0 ? currentTotalHours / currentTotalClockIns : 0;
+
+      // Calculate previous period metrics
+      const previousTotalClockIns = previousPeriodData.length;
+      const previousTotalHours = previousPeriodData.reduce((total, event) => {
+        if (event.clockOuts.length > 0) {
+          return (
+            total +
+            calculateHours(event.timestamp, event.clockOuts[0].timestamp)
+          );
+        }
+        return total;
+      }, 0);
+      const previousUniqueStaff = new Set(
+        previousPeriodData.map((event) => event.userId)
+      ).size;
+      const previousAvgDuration =
+        previousTotalClockIns > 0
+          ? previousTotalHours / previousTotalClockIns
+          : 0;
+
+      // Calculate percentage changes
+      const calculateChange = (current, previous) => {
+        if (previous === 0) return current > 0 ? 100 : 0;
+        return ((current - previous) / previous) * 100;
+      };
+
+      return {
+        totalClockIns: currentTotalClockIns,
+        totalHours: currentTotalHours,
+        averageShiftDuration: currentAvgDuration,
+        uniqueStaffCount: currentUniqueStaff,
+        previousPeriodComparison: {
+          clockInsChange: calculateChange(
+            currentTotalClockIns,
+            previousTotalClockIns
+          ),
+          hoursChange: calculateChange(currentTotalHours, previousTotalHours),
+          durationChange: calculateChange(
+            currentAvgDuration,
+            previousAvgDuration
+          ),
+          staffChange: calculateChange(currentUniqueStaff, previousUniqueStaff),
+        },
+      };
+    },
   },
 
   Mutation: {

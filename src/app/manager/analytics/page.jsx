@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
@@ -20,48 +20,84 @@ import {
 } from "recharts"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import { useQuery } from "@apollo/client"
+import {
+    GET_ANALYTICS_OVERVIEW,
+    GET_DAILY_STATS,
+    GET_WEEKLY_STAFF_HOURS,
+    GET_HOURLY_DISTRIBUTION,
+    GET_LOCATION_DISTRIBUTION
+} from "@/graphql/operations/manager"
+import { format, subDays, startOfDay, endOfDay } from "date-fns"
+import { toast } from "sonner"
 
 export default function AnalyticsPage() {
     const [timeRange, setTimeRange] = useState("week")
+    const [dateRange, setDateRange] = useState({
+        startDate: startOfDay(subDays(new Date(), 7)),
+        endDate: endOfDay(new Date())
+    })
 
-    // Mock data for charts
-    const dailyClockInsData = [
-        { day: "Mon", count: 20, hours: 160 },
-        { day: "Tue", count: 18, hours: 144 },
-        { day: "Wed", count: 22, hours: 176 },
-        { day: "Thu", count: 25, hours: 200 },
-        { day: "Fri", count: 24, hours: 192 },
-        { day: "Sat", count: 15, hours: 120 },
-        { day: "Sun", count: 10, hours: 80 },
-    ]
+    // Fetch analytics overview
+    const { data: overviewData, loading: overviewLoading } = useQuery(GET_ANALYTICS_OVERVIEW, {
+        variables: {
+            startDate: dateRange.startDate,
+            endDate: dateRange.endDate
+        }
+    })
 
-    const hourlyDistributionData = [
-        { hour: "6-8 AM", count: 8 },
-        { hour: "8-10 AM", count: 15 },
-        { hour: "10-12 PM", count: 5 },
-        { hour: "12-2 PM", count: 3 },
-        { hour: "2-4 PM", count: 2 },
-        { hour: "4-6 PM", count: 10 },
-        { hour: "6-8 PM", count: 5 },
-    ]
+    // Fetch daily stats
+    const { data: dailyStatsData, loading: dailyStatsLoading } = useQuery(GET_DAILY_STATS, {
+        variables: {
+            startDate: dateRange.startDate,
+            endDate: dateRange.endDate
+        }
+    })
 
-    const staffHoursData = [
-        { name: "John D.", hours: 40 },
-        { name: "Sarah M.", hours: 38 },
-        { name: "Robert J.", hours: 35 },
-        { name: "Emily K.", hours: 32 },
-        { name: "Michael P.", hours: 30 },
-        { name: "Lisa R.", hours: 28 },
-        { name: "David S.", hours: 25 },
-        { name: "Anna T.", hours: 20 },
-    ]
+    // Fetch weekly staff hours
+    const { data: staffHoursData, loading: staffHoursLoading } = useQuery(GET_WEEKLY_STAFF_HOURS)
 
-    const locationData = [
-        { name: "Main Building", value: 45 },
-        { name: "East Wing", value: 25 },
-        { name: "West Wing", value: 20 },
-        { name: "South Wing", value: 10 },
-    ]
+    // Fetch hourly distribution
+    const { data: hourlyDistributionData, loading: hourlyDistributionLoading } = useQuery(GET_HOURLY_DISTRIBUTION, {
+        variables: {
+            startDate: dateRange.startDate,
+            endDate: dateRange.endDate
+        }
+    })
+
+    // Fetch location distribution
+    const { data: locationData, loading: locationLoading } = useQuery(GET_LOCATION_DISTRIBUTION, {
+        variables: {
+            startDate: dateRange.startDate,
+            endDate: dateRange.endDate
+        }
+    })
+
+    // Handle time range changes
+    useEffect(() => {
+        const now = new Date()
+        let startDate = new Date()
+
+        switch (timeRange) {
+            case "day":
+                startDate = subDays(now, 1)
+                break
+            case "week":
+                startDate = subDays(now, 7)
+                break
+            case "month":
+                startDate = subDays(now, 30)
+                break
+            case "quarter":
+                startDate = subDays(now, 90)
+                break
+        }
+
+        setDateRange({
+            startDate: startOfDay(startDate),
+            endDate: endOfDay(now)
+        })
+    }, [timeRange])
 
     const COLORS = [
         "hsl(var(--primary))",
@@ -69,6 +105,27 @@ export default function AnalyticsPage() {
         "hsl(var(--primary)/0.6)",
         "hsl(var(--primary)/0.4)",
     ]
+
+    if (overviewLoading || dailyStatsLoading || staffHoursLoading || hourlyDistributionLoading || locationLoading) {
+        return <div>Loading...</div>
+    }
+
+    const overview = overviewData?.getAnalyticsOverview || {
+        totalClockIns: 0,
+        totalHours: 0,
+        averageShiftDuration: 0,
+        uniqueStaffCount: 0,
+        previousPeriodComparison: {
+            clockInsChange: 0,
+            hoursChange: 0,
+            durationChange: 0,
+            staffChange: 0
+        }
+    }
+
+    const staffHours = staffHoursData?.getWeeklyStaffHours || []
+    const hourlyDistribution = hourlyDistributionData?.getHourlyDistribution || []
+    const locationDistribution = locationData?.getLocationDistribution || []
 
     return (
         <div className="space-y-6">
@@ -96,8 +153,11 @@ export default function AnalyticsPage() {
                         <CardTitle className="text-sm font-medium">Total Clock-ins</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">134</div>
-                        <p className="text-xs text-muted-foreground">+12% from last week</p>
+                        <div className="text-2xl font-bold">{overview.totalClockIns}</div>
+                        <p className="text-xs text-muted-foreground">
+                            {overview.previousPeriodComparison.clockInsChange > 0 ? '+' : ''}
+                            {overview.previousPeriodComparison.clockInsChange.toFixed(1)}% from last period
+                        </p>
                     </CardContent>
                 </Card>
 
@@ -106,8 +166,11 @@ export default function AnalyticsPage() {
                         <CardTitle className="text-sm font-medium">Total Hours</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">1,072</div>
-                        <p className="text-xs text-muted-foreground">+8% from last week</p>
+                        <div className="text-2xl font-bold">{overview.totalHours.toFixed(1)}</div>
+                        <p className="text-xs text-muted-foreground">
+                            {overview.previousPeriodComparison.hoursChange > 0 ? '+' : ''}
+                            {overview.previousPeriodComparison.hoursChange.toFixed(1)}% from last period
+                        </p>
                     </CardContent>
                 </Card>
 
@@ -116,8 +179,11 @@ export default function AnalyticsPage() {
                         <CardTitle className="text-sm font-medium">Avg. Shift Duration</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">8.2 hrs</div>
-                        <p className="text-xs text-muted-foreground">-0.3 hrs from last week</p>
+                        <div className="text-2xl font-bold">{overview.averageShiftDuration.toFixed(1)} hrs</div>
+                        <p className="text-xs text-muted-foreground">
+                            {overview.previousPeriodComparison.durationChange > 0 ? '+' : ''}
+                            {overview.previousPeriodComparison.durationChange.toFixed(1)}% from last period
+                        </p>
                     </CardContent>
                 </Card>
 
@@ -126,8 +192,11 @@ export default function AnalyticsPage() {
                         <CardTitle className="text-sm font-medium">Unique Staff</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">25</div>
-                        <p className="text-xs text-muted-foreground">+2 from last week</p>
+                        <div className="text-2xl font-bold">{overview.uniqueStaffCount}</div>
+                        <p className="text-xs text-muted-foreground">
+                            {overview.previousPeriodComparison.staffChange > 0 ? '+' : ''}
+                            {overview.previousPeriodComparison.staffChange.toFixed(1)}% from last period
+                        </p>
                     </CardContent>
                 </Card>
             </div>
@@ -161,9 +230,9 @@ export default function AnalyticsPage() {
                                 className="h-[400px]"
                             >
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={dailyClockInsData}>
+                                    <BarChart data={dailyStatsData?.getDailyStats || []}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                        <XAxis dataKey="day" tickLine={false} axisLine={false} />
+                                        <XAxis dataKey="date" tickLine={false} axisLine={false} />
                                         <YAxis
                                             yAxisId="left"
                                             tickLine={false}
@@ -180,12 +249,18 @@ export default function AnalyticsPage() {
                                         <ChartTooltip content={<ChartTooltipContent />} />
                                         <Bar
                                             yAxisId="left"
-                                            dataKey="count"
+                                            dataKey="clockInCount"
                                             fill="hsl(var(--primary))"
                                             radius={[4, 4, 0, 0]}
                                             name="Clock-ins"
                                         />
-                                        <Bar yAxisId="right" dataKey="hours" fill="hsl(var(--muted))" radius={[4, 4, 0, 0]} name="Hours" />
+                                        <Bar
+                                            yAxisId="right"
+                                            dataKey="averageHours"
+                                            fill="hsl(var(--muted))"
+                                            radius={[4, 4, 0, 0]}
+                                            name="Hours"
+                                        />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </ChartContainer>
@@ -210,12 +285,17 @@ export default function AnalyticsPage() {
                                 className="h-[400px]"
                             >
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={staffHoursData} layout="vertical" margin={{ left: 80 }}>
+                                    <BarChart data={staffHours} layout="vertical" margin={{ left: 80 }}>
                                         <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                                         <XAxis type="number" tickLine={false} axisLine={false} />
-                                        <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} />
+                                        <YAxis
+                                            dataKey="user.firstName"
+                                            type="category"
+                                            tickLine={false}
+                                            axisLine={false}
+                                        />
                                         <ChartTooltip content={<ChartTooltipContent />} />
-                                        <Bar dataKey="hours" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                                        <Bar dataKey="totalHours" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </ChartContainer>
@@ -240,7 +320,7 @@ export default function AnalyticsPage() {
                                 className="h-[300px]"
                             >
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart data={hourlyDistributionData}>
+                                    <LineChart data={hourlyDistribution}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
                                         <XAxis dataKey="hour" tickLine={false} axisLine={false} />
                                         <YAxis tickLine={false} axisLine={false} />
@@ -270,16 +350,16 @@ export default function AnalyticsPage() {
                                 <ResponsiveContainer width="100%" height="100%">
                                     <PieChart>
                                         <Pie
-                                            data={locationData}
+                                            data={locationDistribution}
                                             cx="50%"
                                             cy="50%"
                                             labelLine={false}
                                             outerRadius={80}
                                             fill="#8884d8"
-                                            dataKey="value"
+                                            dataKey="count"
                                             label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                                         >
-                                            {locationData.map((entry, index) => (
+                                            {locationDistribution.map((entry, index) => (
                                                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                             ))}
                                         </Pie>

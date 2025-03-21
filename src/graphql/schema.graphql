@@ -85,13 +85,25 @@ type Query {
   checkLocationPerimeter(input: LocationInput!): LocationPerimeterCheck!
   getClockedInStaff: [User!]!
   getStaffClockRecords: [StaffClockRecord!]!
-  getDailyStats(startDate: DateTime!, endDate: DateTime): DailyStats!
+  getDailyStats(startDate: DateTime!, endDate: DateTime): [DailyStats!]!
   getWeeklyStaffHours: [StaffHours!]!
   getAllStaff: [User!]!
   getStaffMember(id: ID!): User!
   getAllShifts: [Shift!]!
   getShiftDetails(id: ID!): Shift!
   getStaffShifts(userId: ID!): [Shift!]!
+  getHourlyDistribution(
+    startDate: DateTime!
+    endDate: DateTime
+  ): [HourlyDistribution!]!
+  getLocationDistribution(
+    startDate: DateTime!
+    endDate: DateTime
+  ): [LocationDistribution!]!
+  getAnalyticsOverview(
+    startDate: DateTime!
+    endDate: DateTime
+  ): AnalyticsOverview!
 }
 
 type LocationPerimeterCheck {
@@ -215,6 +227,31 @@ type DailyStats {
 type StaffHours {
   user: User!
   totalHours: Float!
+}
+
+type HourlyDistribution {
+  hour: String!
+  count: Int!
+}
+
+type LocationDistribution {
+  location: Location!
+  count: Int!
+}
+
+type PeriodComparison {
+  clockInsChange: Float!
+  hoursChange: Float!
+  durationChange: Float!
+  staffChange: Float!
+}
+
+type AnalyticsOverview {
+  totalClockIns: Int!
+  totalHours: Float!
+  averageShiftDuration: Float!
+  uniqueStaffCount: Int!
+  previousPeriodComparison: PeriodComparison!
 }
 
 type StaffClockRecord {

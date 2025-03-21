@@ -397,3 +397,44 @@ export const DELETE_SHIFT = gql`
     deleteShift(id: $id)
   }
 `;
+
+// Query: Get hourly distribution of clock-ins
+export const GET_HOURLY_DISTRIBUTION = gql`
+  query GetHourlyDistribution($startDate: DateTime!, $endDate: DateTime) {
+    getHourlyDistribution(startDate: $startDate, endDate: $endDate) {
+      hour
+      count
+    }
+  }
+`;
+
+// Query: Get location distribution
+export const GET_LOCATION_DISTRIBUTION = gql`
+  query GetLocationDistribution($startDate: DateTime!, $endDate: DateTime) {
+    getLocationDistribution(startDate: $startDate, endDate: $endDate) {
+      location {
+        id
+        address
+      }
+      count
+    }
+  }
+`;
+
+// Query: Get analytics overview
+export const GET_ANALYTICS_OVERVIEW = gql`
+  query GetAnalyticsOverview($startDate: DateTime!, $endDate: DateTime) {
+    getAnalyticsOverview(startDate: $startDate, endDate: $endDate) {
+      totalClockIns
+      totalHours
+      averageShiftDuration
+      uniqueStaffCount
+      previousPeriodComparison {
+        clockInsChange
+        hoursChange
+        durationChange
+        staffChange
+      }
+    }
+  }
+`;
