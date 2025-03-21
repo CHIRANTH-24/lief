@@ -83,6 +83,12 @@ type Query {
   location(id: ID!): Location
   locations: [Location!]!
   checkLocationPerimeter(input: LocationInput!): LocationPerimeterCheck!
+  getClockedInStaff: [User!]!
+  getStaffClockRecords: [StaffClockRecord!]!
+  getDailyStats(startDate: DateTime!, endDate: DateTime): DailyStats!
+  getWeeklyStaffHours: [StaffHours!]!
+  getAllStaff: [User!]!
+  getStaffMember(id: ID!): User!
 }
 
 type LocationPerimeterCheck {
@@ -104,6 +110,10 @@ type Mutation {
   createLocation(input: CreateLocationInput!): Location!
   updateLocation(id: ID!, input: UpdateLocationInput!): Location!
   deleteLocation(id: ID!): Boolean!
+  setLocationPerimeter(input: LocationPerimeterInput!): Location!
+  createStaffMember(input: CreateUserInput!): User!
+  updateStaffMember(id: ID!, input: UpdateUserInput!): User!
+  deleteStaffMember(id: ID!): Boolean!
 }
 
 type AuthPayload {
@@ -208,15 +218,4 @@ type StaffClockRecord {
   user: User!
   clockIns: [ClockIn!]!
   clockOuts: [ClockOut!]!
-}
-
-extend type Query {
-  getClockedInStaff: [User!]!
-  getStaffClockRecords: [StaffClockRecord!]!
-  getDailyStats(startDate: DateTime!, endDate: DateTime): DailyStats!
-  getWeeklyStaffHours: [StaffHours!]!
-}
-
-extend type Mutation {
-  setLocationPerimeter(input: LocationPerimeterInput!): Location!
 }

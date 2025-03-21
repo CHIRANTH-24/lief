@@ -1,12 +1,13 @@
 import { PrismaClient } from "@prisma/client";
-import { GraphQLError } from 'graphql';
+import { GraphQLError } from "graphql";
 
 const prisma = new PrismaClient();
 
 // Helper function to check if user is a manager
 const ensureManager = (user) => {
   if (!user) throw new GraphQLError("Not authenticated");
-  if (user.role !== "MANAGER") throw new GraphQLError("Not authorized. Manager role required.");
+  if (user.role !== "MANAGER")
+    throw new GraphQLError("Not authorized. Manager role required.");
 };
 
 // Helper function to calculate hours between two dates
@@ -19,23 +20,23 @@ export const managerResolvers = {
     // Get all currently clocked in staff
     getClockedInStaff: async (_, __, { user }) => {
       ensureManager(user);
-      
+
       const clockedInUsers = await prisma.user.findMany({
         where: {
           managerId: user.id,
           clockIns: {
             some: {
-              clockOuts: { none: {} } // No corresponding clock out
-            }
-          }
+              clockOuts: { none: {} }, // No corresponding clock out
+            },
+          },
         },
         include: {
           clockIns: {
-            orderBy: { timestamp: 'desc' },
+            orderBy: { timestamp: "desc" },
             take: 1,
-            include: { location: true }
-          }
-        }
+            include: { location: true },
+          },
+        },
       });
 
       return clockedInUsers;
@@ -50,19 +51,19 @@ export const managerResolvers = {
         include: {
           clockIns: {
             include: { location: true },
-            orderBy: { timestamp: 'desc' }
+            orderBy: { timestamp: "desc" },
           },
           clockOuts: {
             include: { location: true },
-            orderBy: { timestamp: 'desc' }
-          }
-        }
+            orderBy: { timestamp: "desc" },
+          },
+        },
       });
 
-      return staff.map(staffMember => ({
+      return staff.map((staffMember) => ({
         user: staffMember,
         clockIns: staffMember.clockIns,
-        clockOuts: staffMember.clockOuts
+        clockOuts: staffMember.clockOuts,
       }));
     },
 
@@ -75,25 +76,33 @@ export const managerResolvers = {
           user: { managerId: user.id },
           timestamp: {
             gte: startDate,
-            lte: endDate
-          }
+            lte: endDate,
+          },
         },
         include: {
-          clockOuts: true
-        }
+          clockOuts: true,
+        },
       });
 
       let totalHours = 0;
-      const validClockEvents = clockEvents.filter(event => event.clockOuts.length > 0);
-      
-      validClockEvents.forEach(event => {
-        totalHours += calculateHours(event.timestamp, event.clockOuts[0].timestamp);
+      const validClockEvents = clockEvents.filter(
+        (event) => event.clockOuts.length > 0
+      );
+
+      validClockEvents.forEach((event) => {
+        totalHours += calculateHours(
+          event.timestamp,
+          event.clockOuts[0].timestamp
+        );
       });
 
       return {
         date: startDate,
-        averageHours: validClockEvents.length > 0 ? totalHours / validClockEvents.length : 0,
-        clockInCount: clockEvents.length
+        averageHours:
+          validClockEvents.length > 0
+            ? totalHours / validClockEvents.length
+            : 0,
+        clockInCount: clockEvents.length,
       };
     },
 
@@ -109,28 +118,88 @@ export const managerResolvers = {
         include: {
           clockIns: {
             where: {
-              timestamp: { gte: oneWeekAgo }
+              timestamp: { gte: oneWeekAgo },
             },
-            include: { clockOuts: true }
-          }
-        }
+            include: { clockOuts: true },
+          },
+        },
       });
 
-      return staff.map(staffMember => {
+      return staff.map((staffMember) => {
         let totalHours = 0;
-        
-        staffMember.clockIns.forEach(clockIn => {
+
+        staffMember.clockIns.forEach((clockIn) => {
           if (clockIn.clockOuts.length > 0) {
-            totalHours += calculateHours(clockIn.timestamp, clockIn.clockOuts[0].timestamp);
+            totalHours += calculateHours(
+              clockIn.timestamp,
+              clockIn.clockOuts[0].timestamp
+            );
           }
         });
 
         return {
           user: staffMember,
-          totalHours
+          totalHours,
         };
       });
-    }
+    },
+
+    // Get all staff members
+    getAllStaff: async (_, __, { user }) => {
+      ensureManager(user);
+
+      const staff = await prisma.user.findMany({
+        where: { managerId: user.id },
+        include: {
+          shifts: {
+            orderBy: { startTime: "desc" },
+          },
+          clockIns: {
+            orderBy: { timestamp: "desc" },
+            take: 1,
+            include: { location: true },
+          },
+          clockOuts: {
+            orderBy: { timestamp: "desc" },
+            take: 1,
+            include: { location: true },
+          },
+        },
+      });
+
+      return staff;
+    },
+
+    // Get staff member details
+    getStaffMember: async (_, { id }, { user }) => {
+      ensureManager(user);
+
+      const staffMember = await prisma.user.findFirst({
+        where: {
+          id,
+          managerId: user.id,
+        },
+        include: {
+          shifts: {
+            orderBy: { startTime: "desc" },
+          },
+          clockIns: {
+            include: { location: true },
+            orderBy: { timestamp: "desc" },
+          },
+          clockOuts: {
+            include: { location: true },
+            orderBy: { timestamp: "desc" },
+          },
+        },
+      });
+
+      if (!staffMember) {
+        throw new GraphQLError("Staff member not found");
+      }
+
+      return staffMember;
+    },
   },
 
   Mutation: {
@@ -142,28 +211,87 @@ export const managerResolvers = {
       try {
         const location = await prisma.location.upsert({
           where: {
-            id: user.id
+            id: user.id,
           },
           update: {
             latitude,
             longitude,
             radius: radiusKm,
-            address: `Perimeter: ${radiusKm}km radius from (${latitude}, ${longitude})`
+            address: `Perimeter: ${radiusKm}km radius from (${latitude}, ${longitude})`,
           },
           create: {
             id: user.id,
             latitude,
             longitude,
             radius: radiusKm,
-            address: `Perimeter: ${radiusKm}km radius from (${latitude}, ${longitude})`
-          }
+            address: `Perimeter: ${radiusKm}km radius from (${latitude}, ${longitude})`,
+          },
         });
 
         return location;
       } catch (error) {
-        console.error('Error setting location perimeter:', error);
-        throw new GraphQLError('Failed to set location perimeter');
+        console.error("Error setting location perimeter:", error);
+        throw new GraphQLError("Failed to set location perimeter");
       }
-    }
-  }
+    },
+
+    // Create new staff member
+    createStaffMember: async (_, { input }, { user }) => {
+      ensureManager(user);
+
+      try {
+        const staffMember = await prisma.user.create({
+          data: {
+            ...input,
+            managerId: user.id,
+            role: "CAREWORKER", // Force role to be CAREWORKER for staff members
+          },
+        });
+
+        return staffMember;
+      } catch (error) {
+        console.error("Error creating staff member:", error);
+        throw new GraphQLError("Failed to create staff member");
+      }
+    },
+
+    // Update staff member
+    updateStaffMember: async (_, { id, input }, { user }) => {
+      ensureManager(user);
+
+      try {
+        const staffMember = await prisma.user.update({
+          where: {
+            id,
+            managerId: user.id,
+          },
+          data: input,
+        });
+
+        return staffMember;
+      } catch (error) {
+        console.error("Error updating staff member:", error);
+        throw new GraphQLError("Failed to update staff member");
+      }
+    },
+
+    // Delete staff member
+    deleteStaffMember: async (_, { id }, { user }) => {
+      ensureManager(user);
+
+      try {
+        await prisma.user.delete({
+          where: {
+            id,
+            managerId: user.id,
+          },
+        });
+
+        return true;
+      } catch (error) {
+        console.error("Error deleting staff member:", error);
+        throw new GraphQLError("Failed to delete staff member");
+      }
+    },
+  },
 };
