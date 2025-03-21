@@ -2,6 +2,21 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371e3; // Earth's radius in meters
+  const φ1 = lat1 * Math.PI/180;
+  const φ2 = lat2 * Math.PI/180;
+  const Δφ = (lat2-lat1) * Math.PI/180;
+  const Δλ = (lon2-lon1) * Math.PI/180;
+
+  const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+          Math.cos(φ1) * Math.cos(φ2) *
+          Math.sin(Δλ/2) * Math.sin(Δλ/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+  return R * c; // Distance in meters
+};
+
 export const locationResolvers = {
   Query: {
     location: async (_, { id }) => {
@@ -22,6 +37,10 @@ export const locationResolvers = {
       if (context.user.role === "MANAGER") {
         return prisma.location.findMany({
           include: {
+            latitude: true,
+            longitude: true,
+            address: true,
+            radius: true,
             clockIns: true,
             clockOuts: true,
           },
@@ -56,6 +75,45 @@ export const locationResolvers = {
         },
       });
     },
+    checkLocationPerimeter: async (_, { input }, context) => {
+      if (!context.user) {
+        throw new Error("Not authenticated");
+      }
+
+      const { latitude, longitude } = input;
+
+      // Get all locations
+      const locations = await prisma.location.findMany();
+      
+      // Find nearest location and check if within radius
+      let nearestLocation = null;
+      let shortestDistance = Infinity;
+      let isWithinPerimeter = false;
+
+      for (const location of locations) {
+        const distance = calculateDistance(
+          latitude,
+          longitude,
+          location.latitude,
+          location.longitude
+        );
+
+        if (distance < shortestDistance) {
+          shortestDistance = distance;
+          nearestLocation = location;
+        }
+
+        // Check if within radius of any location
+        if (distance <= location.radius) {
+          isWithinPerimeter = true;
+        }
+      }
+
+      return {
+        isWithinPerimeter,
+        nearestLocation
+      };
+    }
   },
 
   Mutation: {
@@ -64,13 +122,14 @@ export const locationResolvers = {
         throw new Error("Not authorized");
       }
 
-      const { latitude, longitude, address } = input;
+      const { latitude, longitude, address, radius } = input;
 
       return prisma.location.create({
         data: {
           latitude,
           longitude,
           address,
+          radius,
         },
         include: {
           clockIns: true,
@@ -84,7 +143,7 @@ export const locationResolvers = {
         throw new Error("Not authorized");
       }
 
-      const { latitude, longitude, address } = input;
+      const { latitude, longitude, address, radius } = input;
 
       // Check if location exists
       const existingLocation = await prisma.location.findUnique({
@@ -101,6 +160,7 @@ export const locationResolvers = {
           latitude,
           longitude,
           address,
+          radius,
         },
         include: {
           clockIns: true,

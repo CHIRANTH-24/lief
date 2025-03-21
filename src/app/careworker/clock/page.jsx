@@ -6,6 +6,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { MapPin, Clock, CheckCircle, XCircle } from "lucide-react"
+import { useQuery, useMutation } from "@apollo/client"
+import { CHECK_LOCATION_PERIMETER, CLOCK_IN, CLOCK_OUT, GET_CURRENT_SHIFT } from "@/graphql/operations/careworker"
+import { toast } from "sonner"
 
 function ClockComponent() {
     const searchParams = useSearchParams() 
@@ -18,89 +21,125 @@ function ClockComponent() {
     const [isWithinPerimeter, setIsWithinPerimeter] = useState(null)
     const [notes, setNotes] = useState("")
     const [isSubmitting, setIsSubmitting] = useState(false)
-    const [clockedIn, setClockedIn] = useState(false)
-    const [clockInTime, setClockInTime] = useState(null)
+
+    // GraphQL Operations
+    const { data: currentShiftData } = useQuery(GET_CURRENT_SHIFT, {
+        pollInterval: 5000, // Poll every 5 seconds to keep shift status updated
+    })
+
+    const [clockIn] = useMutation(CLOCK_IN, {
+        onCompleted: () => {
+            toast.success("Clock In Successful", {
+                description: "Your shift has started."
+            })
+            router.push("/careworker/dashboard")
+        },
+        onError: (error) => {
+            toast.error("Clock In Failed", {
+                description: error.message
+            })
+            setIsSubmitting(false)
+        },
+    })
+
+    const [clockOut] = useMutation(CLOCK_OUT, {
+        onCompleted: () => {
+            toast.success("Clock Out Successful", {
+                description: "Your shift has ended."
+            })
+            router.push("/careworker/dashboard")
+        },
+        onError: (error) => {
+            toast.error("Clock Out Failed", {
+                description: error.message
+            })
+            setIsSubmitting(false)
+        },
+    })
+
+    const { data: perimeterData, loading: checkingPerimeter } = useQuery(CHECK_LOCATION_PERIMETER, {
+        variables: {
+            input: location ? {
+                latitude: location.lat,
+                longitude: location.lng
+            } : null
+        },
+        skip: !location,
+        pollInterval: 30000, // Check perimeter every 30 seconds
+    })
 
     useEffect(() => {
-        const storedClockInTime = localStorage.getItem("clockInTime")
-        if (storedClockInTime) {
-            setClockedIn(true)
-            setClockInTime(storedClockInTime)
-        }
-
         // Get current location
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
                     const { latitude, longitude } = position.coords
                     setLocation({ lat: latitude, lng: longitude })
-
-                    // Mock perimeter check - in a real app, this would check against the manager-set perimeter
-                    const within = latitude > 40 && latitude < 42
-                    setIsWithinPerimeter(within)
                 },
-                () => {
-                    console.error("Location access denied")
+                (error) => {
+                    toast.error("Location Error", {
+                        description: "Unable to access location. Please enable location services."
+                    })
                 },
             )
         }
-    }, [])
+    }, [location])
 
-    const handleSubmit = () => {
+    // Update perimeter status when data changes
+    useEffect(() => {
+        if (perimeterData?.checkLocationPerimeter) {
+            setIsWithinPerimeter(perimeterData.checkLocationPerimeter.isWithinPerimeter)
+        }
+    }, [perimeterData])
+
+    const handleSubmit = async () => {
         setIsSubmitting(true)
 
-        setTimeout(() => {
+        const locationInput = {
+            latitude: location.lat,
+            longitude: location.lng,
+            address: perimeterData?.checkLocationPerimeter?.nearestLocation?.address || "Unknown"
+        }
+
+        try {
             if (isClockIn) {
                 if (!isWithinPerimeter) {
-                    console.error("Cannot clock in: outside perimeter")
+                    toast.error("Cannot Clock In", {
+                        description: "You must be within the designated work area to clock in."
+                    })
                     setIsSubmitting(false)
                     return
                 }
 
-                const now = new Date().toISOString()
-                localStorage.setItem("clockInTime", now)
-                localStorage.setItem("clockInNotes", notes)
-                localStorage.setItem("clockInLocation", JSON.stringify(location))
+                await clockIn({
+                    variables: {
+                        input: {
+                            location: locationInput,
+                            notes
+                        }
+                    }
+                })
             } else {
-                const clockInTime = localStorage.getItem("clockInTime")
-                if (!clockInTime) {
-                    console.error("Cannot clock out: Not clocked in")
-                    setIsSubmitting(false)
-                    return
-                }
-
-                const clockInDate = new Date(clockInTime)
-                const clockOutDate = new Date()
-                const durationMs = clockOutDate.getTime() - clockInDate.getTime()
-                const durationHours = Math.floor(durationMs / (1000 * 60 * 60))
-                const durationMinutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60))
-
-                const clockInNotes = localStorage.getItem("clockInNotes") || ""
-                const clockInLocation = localStorage.getItem("clockInLocation") || "{}"
-
-                const shift = {
-                    clockInTime,
-                    clockInNotes,
-                    clockInLocation,
-                    clockOutTime: new Date().toISOString(),
-                    clockOutNotes: notes,
-                    clockOutLocation: JSON.stringify(location),
-                    duration: `${durationHours}h ${durationMinutes}m`,
-                }
-
-                const shifts = JSON.parse(localStorage.getItem("shifts") || "[]")
-                shifts.unshift(shift)
-                localStorage.setItem("shifts", JSON.stringify(shifts))
-
-                localStorage.removeItem("clockInTime")
-                localStorage.removeItem("clockInNotes")
-                localStorage.removeItem("clockInLocation")
+                await clockOut({
+                    variables: {
+                        input: {
+                            location: locationInput,
+                            notes
+                        }
+                    }
+                })
             }
-
+        } catch (error) {
+            console.error("Error during clock operation:", error)
             setIsSubmitting(false)
-            router.push("/careworker/dashboard")
-        }, 1500)
+        }
     }
+
+    // Calculate shift duration if clocked in
+    const shiftDuration = currentShiftData?.currentShift ? {
+        hours: Math.floor((Date.now() - new Date(currentShiftData.currentShift.startTime).getTime()) / (1000 * 60 * 60)),
+        minutes: Math.floor(((Date.now() - new Date(currentShiftData.currentShift.startTime).getTime()) % (1000 * 60 * 60)) / (1000 * 60))
+    } : null
 
     return (
         <div className="max-w-md mx-auto">
@@ -119,6 +158,11 @@ function ClockComponent() {
                         <div className="flex-1 space-y-1">
                             <p className="text-sm font-medium leading-none">Current Time</p>
                             <p className="text-sm text-muted-foreground">{new Date().toLocaleString()}</p>
+                            {!isClockIn && shiftDuration && (
+                                <p className="text-sm text-muted-foreground">
+                                    Shift Duration: {shiftDuration.hours}h {shiftDuration.minutes}m
+                                </p>
+                            )}
                         </div>
                     </div>
 
@@ -129,23 +173,23 @@ function ClockComponent() {
                         <div className="flex-1 space-y-1">
                             <p className="text-sm font-medium leading-none">Location Status</p>
                             <div className="flex items-center mt-1">
-                                {isWithinPerimeter === null ? (
+                                {checkingPerimeter ? (
                                     <p className="text-sm text-muted-foreground">Checking location...</p>
                                 ) : isWithinPerimeter ? (
                                     <>
                                         <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
-                                        <p className="text-sm text-green-600 dark:text-green-400">Within perimeter</p>
+                                        <p className="text-sm text-green-600 dark:text-green-400">Within work area</p>
                                     </>
                                 ) : (
                                     <>
                                         <XCircle className="h-4 w-4 text-red-500 mr-1" />
-                                        <p className="text-sm text-red-600 dark:text-red-400">Outside perimeter</p>
+                                        <p className="text-sm text-red-600 dark:text-red-400">Outside work area</p>
                                     </>
                                 )}
                             </div>
-                            {location && (
+                            {location && perimeterData?.checkLocationPerimeter?.nearestLocation && (
                                 <p className="text-xs text-muted-foreground mt-1">
-                                    Lat: {location.lat.toFixed(6)}, Lng: {location.lng.toFixed(6)}
+                                    Nearest Location: {perimeterData.checkLocationPerimeter.nearestLocation.address}
                                 </p>
                             )}
                         </div>
@@ -167,7 +211,10 @@ function ClockComponent() {
                     <Button variant="outline" onClick={() => router.push("/careworker/dashboard")}>
                         Cancel
                     </Button>
-                    <Button onClick={handleSubmit} disabled={isSubmitting || (isClockIn && !isWithinPerimeter)}>
+                    <Button 
+                        onClick={handleSubmit} 
+                        disabled={isSubmitting || (isClockIn && !isWithinPerimeter) || checkingPerimeter}
+                    >
                         {isSubmitting ? "Processing..." : isClockIn ? "Clock In" : "Clock Out"}
                     </Button>
                 </CardFooter>

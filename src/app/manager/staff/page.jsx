@@ -1,139 +1,236 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useQuery } from '@apollo/client';
-import { GET_CLOCKED_IN_STAFF, GET_STAFF_CLOCK_RECORDS } from '@/graphql/operations/manager';
+
+import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "@/components/ui/table"
-import { Search } from "lucide-react"
-import { toast } from "sonner"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"
+import { Search, MoreHorizontal, UserPlus, MapPin } from "lucide-react"
+
+// type StaffMember = {
+//     id: number
+//     name: string
+//     position: string
+//     status: "active" | "inactive"
+//     clockInTime?: string
+//     clockOutTime?: string
+//     location?: string
+//     hoursThisWeek: number
+// }
 
 export default function StaffPage() {
     const [searchQuery, setSearchQuery] = useState("")
-    
-    // Fetch currently clocked in staff
-    const { data: clockedInData, loading: clockedInLoading, error: clockedInError } = useQuery(GET_CLOCKED_IN_STAFF, {
-        pollInterval: 30000, // Poll every 30 seconds for updates
-        onError: (error) => {
-            toast.error("Error", {
-                description: "Failed to fetch clocked-in staff: " + error.message
-            });
-        }
-    });
+    const [staffMembers, setStaffMembers] = useState([
+        {
+            id: 1,
+            name: "John Doe",
+            position: "Nurse",
+            status: "active",
+            clockInTime: "08:30 AM",
+            location: "Main Building",
+            hoursThisWeek: 32,
+        },
+        {
+            id: 2,
+            name: "Sarah Miller",
+            position: "Caregiver",
+            status: "active",
+            clockInTime: "09:00 AM",
+            location: "East Wing",
+            hoursThisWeek: 28,
+        },
+        {
+            id: 3,
+            name: "Robert Johnson",
+            position: "Nurse",
+            status: "active",
+            clockInTime: "08:45 AM",
+            location: "West Wing",
+            hoursThisWeek: 35,
+        },
+        {
+            id: 4,
+            name: "Emily Kim",
+            position: "Caregiver",
+            status: "active",
+            clockInTime: "09:15 AM",
+            location: "Main Building",
+            hoursThisWeek: 30,
+        },
+        {
+            id: 5,
+            name: "Michael Patel",
+            position: "Nurse",
+            status: "active",
+            clockInTime: "08:00 AM",
+            location: "South Wing",
+            hoursThisWeek: 38,
+        },
+        {
+            id: 6,
+            name: "Lisa Rodriguez",
+            position: "Caregiver",
+            status: "inactive",
+            clockOutTime: "Yesterday, 06:30 PM",
+            hoursThisWeek: 24,
+        },
+        {
+            id: 7,
+            name: "David Smith",
+            position: "Nurse",
+            status: "inactive",
+            clockOutTime: "Yesterday, 05:45 PM",
+            hoursThisWeek: 40,
+        },
+        {
+            id: 8,
+            name: "Anna Thompson",
+            position: "Caregiver",
+            status: "inactive",
+            clockOutTime: "Yesterday, 06:15 PM",
+            hoursThisWeek: 22,
+        },
+    ])
 
-    // Fetch all staff clock records
-    const { data: clockRecordsData, loading: clockRecordsLoading, error: clockRecordsError } = useQuery(GET_STAFF_CLOCK_RECORDS, {
-        onError: (error) => {
-            toast.error("Error", {
-                description: "Failed to fetch staff records: " + error.message
-            });
-        }
-    });
+    const filteredStaff = staffMembers.filter(
+        (staff) =>
+            staff.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            staff.position.toLowerCase().includes(searchQuery.toLowerCase()),
+    )
 
-    // Filter staff based on search query
-    const filteredStaff = clockRecordsData?.getStaffClockRecords.filter(record => 
-        record.user.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        record.user.lastName.toLowerCase().includes(searchQuery.toLowerCase())
-    ) || [];
-
-    const formatDateTime = (timestamp) => {
-        return new Date(timestamp).toLocaleString();
-    };
-
-    const getLatestLocation = (record) => {
-        const location = record?.location;
-        return location ? `${location.address || `(${location.latitude}, ${location.longitude})`}` : 'N/A';
-    };
+    const activeStaff = filteredStaff.filter((staff) => staff.status === "active")
+    const inactiveStaff = filteredStaff.filter((staff) => staff.status === "inactive")
 
     return (
-        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+        <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <h2 className="text-3xl font-bold tracking-tight">Staff Management</h2>
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">Staff Management</h1>
+                    <p className="text-muted-foreground">View and manage your healthcare staff</p>
+                </div>
+                
             </div>
 
-            {/* Currently Clocked In Staff */}
+            <div className="flex items-center space-x-2">
+                <Search className="h-4 w-4 text-muted-foreground" />
+                <Input
+                    placeholder="Search staff by name or position..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="max-w-sm"
+                />
+            </div>
+
             <Card>
                 <CardHeader>
-                    <CardTitle>Currently Clocked In Staff</CardTitle>
-                    <CardDescription>Staff members who are currently on duty</CardDescription>
+                    <CardTitle>Active Staff ({activeStaff.length})</CardTitle>
+                    <CardDescription>Staff currently clocked in</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {clockedInLoading ? (
-                        <div>Loading...</div>
-                    ) : (
-                        <Table>
-                            <TableHeader>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Name</TableHead>
+                                <TableHead>Position</TableHead>
+                                <TableHead>Clock In</TableHead>
+                                <TableHead>Location</TableHead>
+                                <TableHead>Hours This Week</TableHead>
+                                <TableHead className="w-[80px]"></TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {activeStaff.length === 0 ? (
                                 <TableRow>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Clock In Time</TableHead>
-                                    <TableHead>Location</TableHead>
+                                    <TableCell colSpan={6} className="text-center py-4">
+                                        No active staff found
+                                    </TableCell>
                                 </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {clockedInData?.getClockedInStaff.map((staff) => (
+                            ) : (
+                                activeStaff.map((staff) => (
                                     <TableRow key={staff.id}>
-                                        <TableCell>{staff.firstName} {staff.lastName}</TableCell>
-                                        <TableCell>{formatDateTime(staff.clockIns[0]?.timestamp)}</TableCell>
-                                        <TableCell>{getLatestLocation(staff.clockIns[0])}</TableCell>
+                                        <TableCell className="font-medium">{staff.name}</TableCell>
+                                        <TableCell>{staff.position}</TableCell>
+                                        <TableCell>{staff.clockInTime}</TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center">
+                                                <MapPin className="h-3 w-3 mr-1 text-muted-foreground" />
+                                                {staff.location}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>{staff.hoursThisWeek}</TableCell>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    )}
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
                 </CardContent>
             </Card>
 
-            {/* Staff Clock Records */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Staff Clock Records</CardTitle>
-                    <CardDescription>Complete clock in/out history for all staff</CardDescription>
+                    <CardTitle>Inactive Staff ({inactiveStaff.length})</CardTitle>
+                    <CardDescription>Staff currently clocked out</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex items-center gap-4 mb-4">
-                        <Search className="w-4 h-4 text-gray-500" />
-                        <Input
-                            placeholder="Search staff..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="max-w-sm"
-                        />
-                    </div>
-
-                    {clockRecordsLoading ? (
-                        <div>Loading...</div>
-                    ) : (
-                        <Table>
-                            <TableHeader>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Name</TableHead>
+                                <TableHead>Position</TableHead>
+                                <TableHead>Last Clock Out</TableHead>
+                                <TableHead>Hours This Week</TableHead>
+                                <TableHead className="w-[80px]"></TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {inactiveStaff.length === 0 ? (
                                 <TableRow>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Last Clock In</TableHead>
-                                    <TableHead>Last Clock Out</TableHead>
-                                    <TableHead>Location</TableHead>
+                                    <TableCell colSpan={5} className="text-center py-4">
+                                        No inactive staff found
+                                    </TableCell>
                                 </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredStaff.map((record) => (
-                                    <TableRow key={record.user.id}>
-                                        <TableCell>{record.user.firstName} {record.user.lastName}</TableCell>
-                                        <TableCell>
-                                            {record.clockIns[0] ? formatDateTime(record.clockIns[0].timestamp) : 'N/A'}
-                                        </TableCell>
-                                        <TableCell>
-                                            {record.clockOuts[0] ? formatDateTime(record.clockOuts[0].timestamp) : 'N/A'}
-                                        </TableCell>
-                                        <TableCell>
-                                            {record.clockIns[0] ? getLatestLocation(record.clockIns[0]) : 'N/A'}
-                                        </TableCell>
+                            ) : (
+                                inactiveStaff.map((staff) => (
+                                    <TableRow key={staff.id}>
+                                        <TableCell className="font-medium">{staff.name}</TableCell>
+                                        <TableCell>{staff.position}</TableCell>
+                                        <TableCell>{staff.clockOutTime}</TableCell>
+                                        <TableCell>{staff.hoursThisWeek}</TableCell>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    )}
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
                 </CardContent>
             </Card>
         </div>
     )
 }
+
+function Label({ className, ...props }) {
+    return (
+        <label
+            className={`text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 ${className}`}
+            {...props}
+        />
+    )
+}
+

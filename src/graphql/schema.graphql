@@ -82,6 +82,12 @@ type Query {
   clockOuts: [ClockOut!]!
   location(id: ID!): Location
   locations: [Location!]!
+  checkLocationPerimeter(input: LocationInput!): LocationPerimeterCheck!
+}
+
+type LocationPerimeterCheck {
+  isWithinPerimeter: Boolean!
+  nearestLocation: Location
 }
 
 type Mutation {
