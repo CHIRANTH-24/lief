@@ -89,6 +89,9 @@ type Query {
   getWeeklyStaffHours: [StaffHours!]!
   getAllStaff: [User!]!
   getStaffMember(id: ID!): User!
+  getAllShifts: [Shift!]!
+  getShiftDetails(id: ID!): Shift!
+  getStaffShifts(userId: ID!): [Shift!]!
 }
 
 type LocationPerimeterCheck {

@@ -154,6 +154,116 @@ export const GET_STAFF_MEMBER = gql`
   }
 `;
 
+// Query: Get all shifts
+export const GET_ALL_SHIFTS = gql`
+  query GetAllShifts {
+    getAllShifts {
+      id
+      startTime
+      endTime
+      status
+      createdAt
+      updatedAt
+      userId
+      user {
+        id
+        firstName
+        lastName
+        email
+      }
+      clockIns {
+        id
+        timestamp
+        location {
+          latitude
+          longitude
+          address
+        }
+      }
+      clockOuts {
+        id
+        timestamp
+        location {
+          latitude
+          longitude
+          address
+        }
+      }
+    }
+  }
+`;
+
+// Query: Get shift details
+export const GET_SHIFT_DETAILS = gql`
+  query GetShiftDetails($id: ID!) {
+    getShiftDetails(id: $id) {
+      id
+      startTime
+      endTime
+      status
+      createdAt
+      updatedAt
+      userId
+      user {
+        id
+        firstName
+        lastName
+        email
+      }
+      clockIns {
+        id
+        timestamp
+        location {
+          latitude
+          longitude
+          address
+        }
+      }
+      clockOuts {
+        id
+        timestamp
+        location {
+          latitude
+          longitude
+          address
+        }
+      }
+    }
+  }
+`;
+
+// Query: Get staff shifts
+export const GET_STAFF_SHIFTS = gql`
+  query GetStaffShifts($userId: ID!) {
+    getStaffShifts(userId: $userId) {
+      id
+      startTime
+      endTime
+      status
+      createdAt
+      updatedAt
+      clockIns {
+        id
+        timestamp
+        location {
+          latitude
+          longitude
+          address
+        }
+      }
+      clockOuts {
+        id
+        timestamp
+        location {
+          latitude
+          longitude
+          address
+        }
+      }
+    }
+  }
+`;
+
 // Mutation: Set location perimeter
 export const SET_LOCATION_PERIMETER = gql`
   mutation SetLocationPerimeter($input: LocationPerimeterInput!) {
@@ -200,5 +310,90 @@ export const UPDATE_STAFF_MEMBER = gql`
 export const DELETE_STAFF_MEMBER = gql`
   mutation DeleteStaffMember($id: ID!) {
     deleteStaffMember(id: $id)
+  }
+`;
+
+// Mutation: Create shift
+export const CREATE_SHIFT = gql`
+  mutation CreateShift($input: CreateShiftInput!) {
+    createShift(input: $input) {
+      id
+      startTime
+      endTime
+      status
+      createdAt
+      updatedAt
+      userId
+      user {
+        id
+        firstName
+        lastName
+        email
+      }
+      clockIns {
+        id
+        timestamp
+        location {
+          latitude
+          longitude
+          address
+        }
+      }
+      clockOuts {
+        id
+        timestamp
+        location {
+          latitude
+          longitude
+          address
+        }
+      }
+    }
+  }
+`;
+
+// Mutation: Update shift
+export const UPDATE_SHIFT = gql`
+  mutation UpdateShift($id: ID!, $input: UpdateShiftInput!) {
+    updateShift(id: $id, input: $input) {
+      id
+      startTime
+      endTime
+      status
+      createdAt
+      updatedAt
+      userId
+      user {
+        id
+        firstName
+        lastName
+        email
+      }
+      clockIns {
+        id
+        timestamp
+        location {
+          latitude
+          longitude
+          address
+        }
+      }
+      clockOuts {
+        id
+        timestamp
+        location {
+          latitude
+          longitude
+          address
+        }
+      }
+    }
+  }
+`;
+
+// Mutation: Delete shift
+export const DELETE_SHIFT = gql`
+  mutation DeleteShift($id: ID!) {
+    deleteShift(id: $id)
   }
 `;

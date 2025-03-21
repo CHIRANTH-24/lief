@@ -200,6 +200,113 @@ export const managerResolvers = {
 
       return staffMember;
     },
+
+    // Get all shifts
+    getAllShifts: async (_, __, { user }) => {
+      ensureManager(user);
+
+      const shifts = await prisma.shift.findMany({
+        where: {
+          user: {
+            managerId: user.id,
+          },
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
+          clockIns: {
+            include: { location: true },
+            orderBy: { timestamp: "desc" },
+          },
+          clockOuts: {
+            include: { location: true },
+            orderBy: { timestamp: "desc" },
+          },
+        },
+        orderBy: { startTime: "desc" },
+      });
+
+      return shifts;
+    },
+
+    // Get shift details
+    getShiftDetails: async (_, { id }, { user }) => {
+      ensureManager(user);
+
+      const shift = await prisma.shift.findFirst({
+        where: {
+          id,
+          user: {
+            managerId: user.id,
+          },
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
+          clockIns: {
+            include: { location: true },
+            orderBy: { timestamp: "desc" },
+          },
+          clockOuts: {
+            include: { location: true },
+            orderBy: { timestamp: "desc" },
+          },
+        },
+      });
+
+      if (!shift) {
+        throw new GraphQLError("Shift not found");
+      }
+
+      return shift;
+    },
+
+    // Get staff shifts
+    getStaffShifts: async (_, { userId }, { user }) => {
+      ensureManager(user);
+
+      const staffMember = await prisma.user.findFirst({
+        where: {
+          id: userId,
+          managerId: user.id,
+        },
+      });
+
+      if (!staffMember) {
+        throw new GraphQLError("Staff member not found");
+      }
+
+      const shifts = await prisma.shift.findMany({
+        where: {
+          userId,
+        },
+        include: {
+          clockIns: {
+            include: { location: true },
+            orderBy: { timestamp: "desc" },
+          },
+          clockOuts: {
+            include: { location: true },
+            orderBy: { timestamp: "desc" },
+          },
+        },
+        orderBy: { startTime: "desc" },
+      });
+
+      return shifts;
+    },
   },
 
   Mutation: {
@@ -291,6 +398,126 @@ export const managerResolvers = {
       } catch (error) {
         console.error("Error deleting staff member:", error);
         throw new GraphQLError("Failed to delete staff member");
+      }
+    },
+
+    // Create shift
+    createShift: async (_, { input }, { user }) => {
+      ensureManager(user);
+
+      try {
+        // Verify the staff member belongs to this manager
+        const staffMember = await prisma.user.findFirst({
+          where: {
+            id: input.userId,
+            managerId: user.id,
+          },
+        });
+
+        if (!staffMember) {
+          throw new GraphQLError("Staff member not found");
+        }
+
+        const shift = await prisma.shift.create({
+          data: {
+            ...input,
+            status: input.status || "SCHEDULED",
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+            clockIns: {
+              include: {
+                location: true,
+              },
+            },
+            clockOuts: {
+              include: {
+                location: true,
+              },
+            },
+          },
+        });
+
+        return shift;
+      } catch (error) {
+        console.error("Error creating shift:", error);
+        throw new GraphQLError("Failed to create shift");
+      }
+    },
+
+    // Update shift
+    updateShift: async (_, { id, input }, { user }) => {
+      ensureManager(user);
+
+      try {
+        const shift = await prisma.shift.findFirst({
+          where: {
+            id,
+            user: {
+              managerId: user.id,
+            },
+          },
+        });
+
+        if (!shift) {
+          throw new GraphQLError("Shift not found");
+        }
+
+        const updatedShift = await prisma.shift.update({
+          where: { id },
+          data: input,
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+          },
+        });
+
+        return updatedShift;
+      } catch (error) {
+        console.error("Error updating shift:", error);
+        throw new GraphQLError("Failed to update shift");
+      }
+    },
+
+    // Delete shift
+    deleteShift: async (_, { id }, { user }) => {
+      ensureManager(user);
+
+      try {
+        const shift = await prisma.shift.findFirst({
+          where: {
+            id,
+            user: {
+              managerId: user.id,
+            },
+          },
+        });
+
+        if (!shift) {
+          throw new GraphQLError("Shift not found");
+        }
+
+        await prisma.shift.delete({
+          where: { id },
+        });
+
+        return true;
+      } catch (error) {
+        console.error("Error deleting shift:", error);
+        throw new GraphQLError("Failed to delete shift");
       }
     },
   },
