@@ -1,4 +1,4 @@
-import { gql } from '@apollo/client';
+import { gql } from "@apollo/client";
 
 export const CHECK_LOCATION_PERIMETER = gql`
   query CheckLocationPerimeter($input: LocationInput!) {
@@ -49,6 +49,7 @@ export const CLOCK_OUT = gql`
         id
         startTime
         endTime
+        status
       }
     }
   }

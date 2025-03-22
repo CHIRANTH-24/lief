@@ -154,7 +154,7 @@ export const clockResolvers = {
         throw new Error("Not authenticated");
       }
 
-      // Get current shift
+      // Get current shift that is either scheduled or in progress
       const now = new Date();
       const currentShift = await prisma.shift.findFirst({
         where: {
@@ -162,15 +162,23 @@ export const clockResolvers = {
           startTime: {
             lte: now,
           },
-          endTime: {
-            gte: now,
+          status: {
+            in: ["SCHEDULED", "IN_PROGRESS"],
           },
-          status: "IN_PROGRESS",
+        },
+        include: {
+          clockIns: true,
+          clockOuts: true,
         },
       });
 
       if (!currentShift) {
         throw new Error("No active shift found");
+      }
+
+      // Check if already clocked out
+      if (currentShift.clockOuts.length > 0) {
+        throw new Error("Already clocked out for this shift");
       }
 
       // Create location if provided
@@ -187,18 +195,22 @@ export const clockResolvers = {
         locationId = createdLocation.id;
       }
 
-      // Update shift status to COMPLETED
+      // Update shift status to COMPLETED and set endTime to current time
       await prisma.shift.update({
         where: { id: currentShift.id },
-        data: { status: "COMPLETED" },
+        data: {
+          status: "COMPLETED",
+          endTime: now, // Update end time to current time
+        },
       });
 
-      // Create clock-out
+      // Create clock-out with notes
       return prisma.clockOut.create({
         data: {
           userId: context.user.id,
           shiftId: currentShift.id,
           locationId,
+          notes: input.notes || null,
         },
         include: {
           user: true,
