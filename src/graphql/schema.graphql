@@ -104,6 +104,7 @@ type Query {
     startDate: DateTime!
     endDate: DateTime
   ): AnalyticsOverview!
+  currentShift: Shift
 }
 
 type LocationPerimeterCheck {
@@ -180,15 +181,13 @@ input UpdateShiftInput {
 }
 
 input ClockInInput {
-  userId: String!
-  shiftId: String!
   location: LocationInput
+  notes: String
 }
 
 input ClockOutInput {
-  userId: String!
-  shiftId: String!
   location: LocationInput
+  notes: String
 }
 
 input LocationInput {
