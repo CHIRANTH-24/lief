@@ -88,39 +88,57 @@ export const clockResolvers = {
         throw new Error("Not authenticated");
       }
 
-      const { shiftId, location } = input;
-
-      // Check if shift exists and belongs to user
-      const shift = await prisma.shift.findUnique({
-        where: { id: shiftId },
+      // Get current shift
+      const now = new Date();
+      const currentShift = await prisma.shift.findFirst({
+        where: {
+          userId: context.user.id,
+          startTime: {
+            lte: now,
+          },
+          endTime: {
+            gte: now,
+          },
+          status: {
+            in: ["SCHEDULED", "IN_PROGRESS"],
+          },
+        },
       });
 
-      if (!shift) {
-        throw new Error("Shift not found");
+      if (!currentShift) {
+        throw new Error("No active shift found");
       }
 
-      if (shift.userId !== context.user.id && context.user.role !== "MANAGER") {
-        throw new Error("Not authorized");
+      // Check if shift is already in progress
+      if (currentShift.status === "IN_PROGRESS") {
+        throw new Error("Shift is already in progress");
       }
 
       // Create location if provided
       let locationId = null;
-      if (location) {
+      if (input.location) {
         const createdLocation = await prisma.location.create({
           data: {
-            latitude: location.latitude,
-            longitude: location.longitude,
-            address: location.address,
+            latitude: input.location.latitude,
+            longitude: input.location.longitude,
+            address: input.location.address,
+            radius: input.location.radius || 100, // Default radius of 100 meters
           },
         });
         locationId = createdLocation.id;
       }
 
+      // Update shift status to IN_PROGRESS
+      await prisma.shift.update({
+        where: { id: currentShift.id },
+        data: { status: "IN_PROGRESS" },
+      });
+
       // Create clock-in
       return prisma.clockIn.create({
         data: {
           userId: context.user.id,
-          shiftId,
+          shiftId: currentShift.id,
           locationId,
         },
         include: {
@@ -136,40 +154,63 @@ export const clockResolvers = {
         throw new Error("Not authenticated");
       }
 
-      const { shiftId, location } = input;
-
-      // Check if shift exists and belongs to user
-      const shift = await prisma.shift.findUnique({
-        where: { id: shiftId },
+      // Get current shift that is either scheduled or in progress
+      const now = new Date();
+      const currentShift = await prisma.shift.findFirst({
+        where: {
+          userId: context.user.id,
+          startTime: {
+            lte: now,
+          },
+          status: {
+            in: ["SCHEDULED", "IN_PROGRESS"],
+          },
+        },
+        include: {
+          clockIns: true,
+          clockOuts: true,
+        },
       });
 
-      if (!shift) {
-        throw new Error("Shift not found");
+      if (!currentShift) {
+        throw new Error("No active shift found");
       }
 
-      if (shift.userId !== context.user.id && context.user.role !== "MANAGER") {
-        throw new Error("Not authorized");
+      // Check if already clocked out
+      if (currentShift.clockOuts.length > 0) {
+        throw new Error("Already clocked out for this shift");
       }
 
       // Create location if provided
       let locationId = null;
-      if (location) {
+      if (input.location) {
         const createdLocation = await prisma.location.create({
           data: {
-            latitude: location.latitude,
-            longitude: location.longitude,
-            address: location.address,
+            latitude: input.location.latitude,
+            longitude: input.location.longitude,
+            address: input.location.address,
+            radius: input.location.radius || 100, // Default radius of 100 meters
           },
         });
         locationId = createdLocation.id;
       }
 
-      // Create clock-out
+      // Update shift status to COMPLETED and set endTime to current time
+      await prisma.shift.update({
+        where: { id: currentShift.id },
+        data: {
+          status: "COMPLETED",
+          endTime: now, // Update end time to current time
+        },
+      });
+
+      // Create clock-out with notes
       return prisma.clockOut.create({
         data: {
           userId: context.user.id,
-          shiftId,
+          shiftId: currentShift.id,
           locationId,
+          notes: input.notes || null,
         },
         include: {
           user: true,

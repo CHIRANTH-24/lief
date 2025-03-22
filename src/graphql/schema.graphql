@@ -44,12 +44,14 @@ type ClockOut {
   user: User!
   shiftId: String!
   shift: Shift!
+  notes: String
 }
 
 type Location {
   id: ID!
   latitude: Float!
   longitude: Float!
+  radius: Float!
   address: String
   clockIns: [ClockIn!]!
   clockOuts: [ClockOut!]!
@@ -81,6 +83,34 @@ type Query {
   clockOuts: [ClockOut!]!
   location(id: ID!): Location
   locations: [Location!]!
+  checkLocationPerimeter(input: LocationInput!): LocationPerimeterCheck!
+  getClockedInStaff: [User!]!
+  getStaffClockRecords: [StaffClockRecord!]!
+  getDailyStats(startDate: DateTime!, endDate: DateTime): [DailyStats!]!
+  getWeeklyStaffHours: [StaffHours!]!
+  getAllStaff: [User!]!
+  getStaffMember(id: ID!): User!
+  getAllShifts: [Shift!]!
+  getShiftDetails(id: ID!): Shift!
+  getStaffShifts(userId: ID!): [Shift!]!
+  getHourlyDistribution(
+    startDate: DateTime!
+    endDate: DateTime
+  ): [HourlyDistribution!]!
+  getLocationDistribution(
+    startDate: DateTime!
+    endDate: DateTime
+  ): [LocationDistribution!]!
+  getAnalyticsOverview(
+    startDate: DateTime!
+    endDate: DateTime
+  ): AnalyticsOverview!
+  currentShift: Shift
+}
+
+type LocationPerimeterCheck {
+  isWithinPerimeter: Boolean!
+  nearestLocation: Location
 }
 
 type Mutation {
@@ -97,6 +127,10 @@ type Mutation {
   createLocation(input: CreateLocationInput!): Location!
   updateLocation(id: ID!, input: UpdateLocationInput!): Location!
   deleteLocation(id: ID!): Boolean!
+  setLocationPerimeter(input: LocationPerimeterInput!): Location!
+  createStaffMember(input: CreateUserInput!): User!
+  updateStaffMember(id: ID!, input: UpdateUserInput!): User!
+  deleteStaffMember(id: ID!): Boolean!
 }
 
 type AuthPayload {
@@ -148,31 +182,80 @@ input UpdateShiftInput {
 }
 
 input ClockInInput {
-  userId: String!
-  shiftId: String!
   location: LocationInput
+  notes: String
 }
 
 input ClockOutInput {
-  userId: String!
-  shiftId: String!
   location: LocationInput
+  notes: String
 }
 
 input LocationInput {
   latitude: Float!
   longitude: Float!
+  radius: Float
   address: String
 }
 
 input CreateLocationInput {
   latitude: Float!
   longitude: Float!
+  radius: Float!
   address: String
 }
 
 input UpdateLocationInput {
   latitude: Float
   longitude: Float
+  radius: Float
   address: String
+}
+
+input LocationPerimeterInput {
+  latitude: Float!
+  longitude: Float!
+  radiusKm: Float!
+}
+
+type DailyStats {
+  date: DateTime!
+  averageHours: Float!
+  clockInCount: Int!
+}
+
+type StaffHours {
+  user: User!
+  totalHours: Float!
+}
+
+type HourlyDistribution {
+  hour: String!
+  count: Int!
+}
+
+type LocationDistribution {
+  location: Location!
+  count: Int!
+}
+
+type PeriodComparison {
+  clockInsChange: Float!
+  hoursChange: Float!
+  durationChange: Float!
+  staffChange: Float!
+}
+
+type AnalyticsOverview {
+  totalClockIns: Int!
+  totalHours: Float!
+  averageShiftDuration: Float!
+  uniqueStaffCount: Int!
+  previousPeriodComparison: PeriodComparison!
+}
+
+type StaffClockRecord {
+  user: User!
+  clockIns: [ClockIn!]!
+  clockOuts: [ClockOut!]!
 }

@@ -42,6 +42,35 @@ export const shiftResolvers = {
         },
       });
     },
+    currentShift: async (_, __, context) => {
+      if (!context.user) {
+        throw new Error("Not authenticated");
+      }
+
+      // Find the current active shift for the user
+      const now = new Date();
+      const currentShift = await prisma.shift.findFirst({
+        where: {
+          userId: context.user.id,
+          startTime: {
+            lte: now,
+          },
+          endTime: {
+            gte: now,
+          },
+          status: {
+            in: ["SCHEDULED", "IN_PROGRESS"],
+          },
+        },
+        include: {
+          user: true,
+          clockIns: true,
+          clockOuts: true,
+        },
+      });
+
+      return currentShift;
+    },
   },
 
   Mutation: {

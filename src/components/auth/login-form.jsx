@@ -8,6 +8,8 @@ import * as z from "zod"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { useMutation } from "@apollo/client"
+import { LOGIN_MUTATION } from "@/lib/graphql/mutations"
 // import { toast } from "sonner"
 
 const formSchema = z.object({
@@ -18,7 +20,7 @@ const formSchema = z.object({
 export function LoginForm() {
     const [isLoading, setIsLoading] = useState(false)
     const router = useRouter()
-    
+    const [login] = useMutation(LOGIN_MUTATION)
 
     const form = useForm({
         resolver: zodResolver(formSchema),
@@ -32,11 +34,20 @@ export function LoginForm() {
         setIsLoading(true)
 
         try {
-            // Simulate authentication
-            await new Promise((resolve) => setTimeout(resolve, 1000))
+            const { data } = await login({
+                variables: {
+                    input: {
+                        email: values.email,
+                        password: values.password,
+                    },
+                },
+            })
 
-            // For demo purposes, route based on email domain
-            if (values.email.includes("manager")) {
+            const { token, user } = data.login
+            localStorage.setItem('token', token)
+            localStorage.setItem('user', JSON.stringify(user))
+
+            if (user.role === "MANAGER") {
                 router.push("/manager/dashboard")
             } else {
                 router.push("/careworker/dashboard")
@@ -50,7 +61,7 @@ export function LoginForm() {
             // toast({
             //     variant: "destructive",
             //     title: "Login failed",
-            //     description: "Please check your credentials and try again",
+            //     description: error.message || "Please check your credentials and try again",
             // })
         } finally {
             setIsLoading(false)

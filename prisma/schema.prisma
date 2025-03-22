@@ -66,6 +66,7 @@ model Location {
   id        String   @id @default(cuid())
   latitude  Float
   longitude Float
+  radius    Float
   address   String?
   clockIns  ClockIn[]
   clockOuts ClockOut[]
@@ -81,4 +82,4 @@ enum ShiftStatus {
   IN_PROGRESS
   COMPLETED
   CANCELLED
-} 
+}
